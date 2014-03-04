@@ -3,7 +3,7 @@
 # @Author: sammko
 # @Date:   2014-02-25 13:57:01
 # @Last Modified by:   sammko
-# @Last Modified time: 2014-03-04 17:50:54
+# @Last Modified time: 2014-03-04 18:19:29
 
 from colorama import init, Fore
 import socket, threading, re, time, ast
@@ -25,6 +25,18 @@ class ClientThread(threading.Thread):
         self.shared = shared
         shared.unames.append("player_"+str(i))
         print(Fore.GREEN + "[+]" + Fore.RESET + " New thread ("+str(i)+") for "+ip+":"+str(port))
+
+    def run(self):   
+        self.authenticate() 
+        data = "."
+        while True and self.a:
+            data = self.socket.recv(8)
+            if not len(data): break
+            print(Fore.YELLOW+"Client ("+str(self.i)+") sent: "+Fore.RESET+data)
+            self.parse_cmd(data)
+            
+        self.shared.unames[self.i] = ''
+        print(Fore.RED + "[-]" + Fore.RESET + " Client ("+str(self.i)+") disconnected...\n")
 
     def authenticate(self):
         self.socket.send(">AUTH"+str(self.i))
@@ -93,20 +105,6 @@ class ClientThread(threading.Thread):
             self.socket.send(l)                                 #SEND LEN
             self.socket.send(dmp)                               #SEND DATA
             print(Fore.CYAN+"Client ("+str(self.i)+") GET PL <- l: "+l)
-
-    def run(self):   
-        self.authenticate() 
-        data = "."
-        while True and self.a:
-            data = self.socket.recv(8)
-            if not len(data): break
-            print(Fore.YELLOW+"Client ("+str(self.i)+") sent: "+Fore.RESET+data)
-            self.parse_cmd(data)
-            
-        self.shared.unames[self.i] = ''
-        print(Fore.RED + "[-]" + Fore.RESET + " Client ("+str(self.i)+") disconnected...\n")
-
-
 
 DEBUG = 1
 
