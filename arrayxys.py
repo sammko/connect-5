@@ -3,7 +3,7 @@
 # @Author: sammko
 # @Date:   2014-02-26 18:42:10
 # @Last Modified by:   sammko
-# @Last Modified time: 2014-03-04 16:20:25
+# @Last Modified time: 2014-03-04 17:18:38
 import socket, ast, pickle
 
 PTYPE_LEN = 4
@@ -20,7 +20,7 @@ s.connect((TCP_IP, TCP_PORT))
 
 packet_data = s.recv(2048)
 if packet_data.startswith(">AUTH"):
-	s.send("asd11b83")
+    s.send("asd11b83")
 s.send(MESSAGE)
 
 s.send(str(len(str(xy))).zfill(8))
