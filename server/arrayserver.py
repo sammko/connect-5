@@ -3,7 +3,7 @@
 # @Author: sammko
 # @Date:   2014-02-25 13:57:01
 # @Last Modified by:   sammko
-# @Last Modified time: 2014-03-04 17:38:04
+# @Last Modified time: 2014-03-04 17:42:06
 
 from colorama import init, Fore
 import socket, threading, re, time, ast
@@ -26,25 +26,7 @@ class ClientThread(threading.Thread):
         shared.unames.append("player_"+str(i))
         print Fore.GREEN + "[+]" + Fore.RESET + " New thread ("+str(i)+") for "+ip+":"+str(port)
 
-    def run(self):    
-        self.socket.send(">AUTH"+str(self.i))
-        if not self.socket.recv(8) == auth:
-            self.a = 0
-            print Fore.CYAN+"[!]"+Fore.RESET+" Client ("+str(self.i)+") not authorized! Killing!"
-            self.socket.send(">NAUTH")
-        if self.a:
-            print Fore.CYAN+"[!]"+Fore.RESET+" Client ("+str(self.i)+") authorized successfully!"
-        data = "."
-        while True and self.a:
-            data = self.socket.recv(8)
-            if not len(data): break
-            print Fore.YELLOW+"Client ("+str(self.i)+") sent: "+Fore.RESET+data
-            
-
-        self.shared.unames[self.i] = ''
-        print Fore.RED + "[-]" + Fore.RESET + " Client ("+str(self.i)+") disconnected...\n"
-
-    def parse_cmd(self):
+    def parse_cmd(self, data):
         if data == "-FAR0000":                                  #FULL ARRAY REQUEST (W/O DATA)
             dmp = str(self.shared.gamefield).replace(" ", "")   #ARRAY STRING
             l = str(len(dmp)).zfill(8)                          #PACKET LENGHT (FIXED 8 DIG)
@@ -101,6 +83,25 @@ class ClientThread(threading.Thread):
             self.socket.send(l)                                 #SEND LEN
             self.socket.send(dmp)                               #SEND DATA
             print Fore.CYAN+"Client ("+str(self.i)+") GET PL <- l: "+l
+
+    def run(self):    
+        self.socket.send(">AUTH"+str(self.i))
+        if not self.socket.recv(8) == auth:
+            self.a = 0
+            print Fore.CYAN+"[!]"+Fore.RESET+" Client ("+str(self.i)+") not authorized! Killing!"
+            self.socket.send(">NAUTH")
+        if self.a:
+            print Fore.CYAN+"[!]"+Fore.RESET+" Client ("+str(self.i)+") authorized successfully!"
+        data = "."
+        while True and self.a:
+            data = self.socket.recv(8)
+            if not len(data): break
+            self.parse_cmd(data)
+            print Fore.YELLOW+"Client ("+str(self.i)+") sent: "+Fore.RESET+data
+            
+        self.shared.unames[self.i] = ''
+        print Fore.RED + "[-]" + Fore.RESET + " Client ("+str(self.i)+") disconnected...\n"
+
 
 
 DEBUG = 1
