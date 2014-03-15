@@ -3,7 +3,7 @@
 # @Author: sammko
 # @Date:   2014-02-25 13:57:01
 # @Last Modified by:   sammko
-# @Last Modified time: 2014-03-15 22:01:38
+# @Last Modified time: 2014-03-15 22:04:20
 
 from colorama import init, Fore
 import socket, threading, re, time, ast
@@ -38,10 +38,6 @@ class PacketDispatcher():
             self.socket.send(packet.get_payload())
         return ack
 
-class PacketReceiver():
-    def __init__(self, socket):
-        self.socket = socket
-
     def receive(self):
         l = int(self.socket.recv(8))
         self.socket.send("_ACK")
@@ -56,7 +52,6 @@ class ClientThread(threading.Thread):
         self.i = i
         self.a = 1
         self.disp = PacketDispatcher(socket)
-        self.recv = PacketReceiver(socket)
         self.shared = shared
         shared.unames.append("player_"+str(i))
         print(Fore.GREEN + "[+]" + Fore.RESET + " New thread ("+str(i)+") for "+ip+":"+str(port))
@@ -65,7 +60,7 @@ class ClientThread(threading.Thread):
         self.authenticate() 
         data = "."
         while True and self.a:
-            data = self.recv.receive().get_payload()
+            data = self.disp.receive().get_payload()
             if not len(data): break
             print(Fore.YELLOW+"Client ("+str(self.i)+") sent: "+Fore.RESET+data)
             self.parse_cmd(data)
@@ -76,7 +71,7 @@ class ClientThread(threading.Thread):
 
     def authenticate(self):
         self.disp.dispatch(Packet(">AUTH"+str(self.i)))
-        code = self.recv.receive().get_payload()
+        code = self.disp.receive().get_payload()
         if not code == auth:
             self.a = 0
             print(Fore.CYAN+"[!]"+Fore.RESET+" Client ("+str(self.i)+") not authorized! Killing!")
@@ -92,27 +87,27 @@ class ClientThread(threading.Thread):
             print(Fore.CYAN+"Client ("+str(self.i)+") GET FA"+Fore.RESET)
 
         if data == "+SFA0000":                                  #SET FULL ARRAY (W/ DATA)
-            dmp = self.recv.receive().get_payload()             #RECEIVE PACKET
+            dmp = self.disp.receive().get_payload()             #RECEIVE PACKET
             self.shared.gamefield = ast.literal_eval(dmp)       #WRITE ARRAY
             self.disp.dispatch(Packet(">SFA"))                  #SEND ACK
             print(Fore.CYAN+"Client ("+str(self.i)+") SET FA")
 
         if data == "*XYR0000":                                  #XY REQUEST (W/ DATA TWOWAY)
-            dmp = self.recv.receive().get_payload()             #RECEIVE XYLOC
+            dmp = self.disp.receive().get_payload()             #RECEIVE XYLOC
             xy = ast.literal_eval(dmp)                          #WRITE ARRAY (needs safe-checking)
             dmp = str(self.shared.gamefield[xy[0]][xy[1]]).replace(" ", "")#CREATE DATA DUMP
             self.disp.dispatch(Packet(dmp))                     #SEND DATA
             print(Fore.CYAN+"Client ("+str(self.i)+") GET XY")
 
         if data == "+XYS0000":                                  #XY SET (W/ DATA)
-            dmp = self.recv.receive().get_payload()             #RECEIVE DATA
+            dmp = self.disp.receive().get_payload()             #RECEIVE DATA
             xyd = ast.literal_eval(dmp)                         #WRITE ARRAY (needs safe-checking)
             self.shared.gamefield[xyd[0]][xyd[1]] = int(xyd[2]) #WRITE DATA TO GFIELD
             self.disp.dispatch(Packet(">XYS"))
             print(Fore.CYAN+"Client ("+str(self.i)+") SET XY")
 
         if data == "+SUN0000":                                  #SET USERNAME (W/ DATA)
-            dmp = self.recv.receive().get_payload()             #RECEIVE DATA
+            dmp = self.disp.receive().get_payload()             #RECEIVE DATA
             self.shared.unames[self.i] = dmp                    #WRITE TO SHARED
             self.disp.dispatch(Packet(">SUN"))                  #SEND ACK
             print(Fore.CYAN+"Client ("+str(self.i)+") SET UN")
