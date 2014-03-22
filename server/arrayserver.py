@@ -3,7 +3,7 @@
 # @Author: sammko
 # @Date:   2014-02-25 13:57:01
 # @Last Modified by:   sammko
-# @Last Modified time: 2014-03-22 20:46:29
+# @Last Modified time: 2014-03-22 21:23:52
 
 from colorama import init, Fore
 import socket, threading, re, time, ast
@@ -69,10 +69,7 @@ class RowCounter():
         return cnt
 
     def operate(ox,oy,pas,di):
-        if pas == 0:
-            return (ox + self.opmatrix[di][0]),(oy + self.opmatrix[di][1])
-        if pas == 1:
-            return (ox - self.opmatrix[di][0]),(oy - self.opmatrix[di][1])
+        return (ox + opmatrix[di][0] * (pas*2-1)),(oy + opmatrix[di][1] * (pas*2-1))
 
     def getisplayer(x,y,p,gamefield):
         lx = len(gamefield[0])
