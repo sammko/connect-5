@@ -3,7 +3,7 @@
 # @Author: sammko
 # @Date:   2014-02-25 13:57:01
 # @Last Modified by:   sammko
-# @Last Modified time: 2014-03-15 22:04:20
+# @Last Modified time: 2014-03-22 20:23:53
 
 from colorama import init, Fore
 import socket, threading, re, time, ast
@@ -42,6 +42,44 @@ class PacketDispatcher():
         l = int(self.socket.recv(8))
         self.socket.send("_ACK")
         return Packet(self.socket.recv(l))
+
+class RowCounter():
+    def __init__(self, gamefield):
+        self.gamefield = gamefield
+        self.opmatrix = [[0,1],[1,-1],[1,0],[-1,-1]]
+
+    def checkpoints(direction, originx, originy, player):
+        tmpx = originx
+        tmpy = originy
+        cnt = 0
+        flag = 1
+
+        while flag > 0:
+            flag = getisplayer(tmpx, tmpy, player, self.gamefield)
+            cnt += flag
+            tmpx, tmpy = operate(tmpx, tmpy, 0, direction)
+        flag = 1
+        tmpx = originx
+        tmpy = originy
+        while flag > 0:
+            flag = getisplayer(tmpx, tmpy, player, self.gamefield)
+            cnt += flag
+            tmpx, tmpy = operate(tmpx, tmpy, 1, direction)
+        cnt -= 1
+        return cnt
+
+    def operate(ox,oy,pas,di):
+        if pas == 0:
+            return (ox + self.opmatrix[di][0]),(oy + self.opmatrix[di][1])
+        if pas == 1:
+            return (ox - self.opmatrix[di][0]),(oy - self.opmatrix[di][1])
+
+    def getisplayer(x,y,p,gamefield):
+        lx = len(gamefield[0])
+        ly = len(gamefield)
+        if x >= lx or y >= ly or x < 0 or y < 0:
+            return 0
+        return gamefield[y][x] == p
 
 class ClientThread(threading.Thread):
     def __init__(self, ip, port, socket, i, shared):
@@ -89,27 +127,24 @@ class ClientThread(threading.Thread):
         if data == "+SFA0000":                                  #SET FULL ARRAY (W/ DATA)
             dmp = self.disp.receive().get_payload()             #RECEIVE PACKET
             self.shared.gamefield = ast.literal_eval(dmp)       #WRITE ARRAY
-            self.disp.dispatch(Packet(">SFA"))                  #SEND ACK
             print(Fore.CYAN+"Client ("+str(self.i)+") SET FA")
 
         if data == "*XYR0000":                                  #XY REQUEST (W/ DATA TWOWAY)
             dmp = self.disp.receive().get_payload()             #RECEIVE XYLOC
             xy = ast.literal_eval(dmp)                          #WRITE ARRAY (needs safe-checking)
-            dmp = str(self.shared.gamefield[xy[0]][xy[1]]).replace(" ", "")#CREATE DATA DUMP
+            dmp = str(self.shared.gamefield[xy[1]][xy[0]]).replace(" ", "")#CREATE DATA DUMP
             self.disp.dispatch(Packet(dmp))                     #SEND DATA
             print(Fore.CYAN+"Client ("+str(self.i)+") GET XY")
 
         if data == "+XYS0000":                                  #XY SET (W/ DATA)
             dmp = self.disp.receive().get_payload()             #RECEIVE DATA
             xyd = ast.literal_eval(dmp)                         #WRITE ARRAY (needs safe-checking)
-            self.shared.gamefield[xyd[0]][xyd[1]] = int(xyd[2]) #WRITE DATA TO GFIELD
-            self.disp.dispatch(Packet(">XYS"))
+            self.shared.gamefield[xyd[1]][xyd[0]] = int(xyd[2]) #WRITE DATA TO GFIELD
             print(Fore.CYAN+"Client ("+str(self.i)+") SET XY")
 
         if data == "+SUN0000":                                  #SET USERNAME (W/ DATA)
             dmp = self.disp.receive().get_payload()             #RECEIVE DATA
             self.shared.unames[self.i] = dmp                    #WRITE TO SHARED
-            self.disp.dispatch(Packet(">SUN"))                  #SEND ACK
             print(Fore.CYAN+"Client ("+str(self.i)+") SET UN")
 
         if data == "-GUN0000":                                  #GET USERNAME (W/O DATA)
@@ -123,7 +158,6 @@ class ClientThread(threading.Thread):
             print(Fore.CYAN+"Client ("+str(self.i)+") GET PL")
 
         if data == "/DSC0000":                                  #DISCONNECT (0DATA)
-            self.disp.dispatch(Packet(">DSC"))                  #SEND ACK
             self.a = 0                                          #USE DEAUTH TO KILL THREAD
             print(Fore.CYAN+"Client ("+str(self.i)+") FDSC")
 
