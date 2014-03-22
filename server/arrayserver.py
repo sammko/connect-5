@@ -3,7 +3,7 @@
 # @Author: sammko
 # @Date:   2014-02-25 13:57:01
 # @Last Modified by:   sammko
-# @Last Modified time: 2014-03-22 20:23:53
+# @Last Modified time: 2014-03-22 20:46:29
 
 from colorama import init, Fore
 import socket, threading, re, time, ast
@@ -123,11 +123,6 @@ class ClientThread(threading.Thread):
             dmp = str(self.shared.gamefield).replace(" ", "")   #ARRAY STRING
             self.disp.dispatch(Packet(dmp))                     #SEND DATA DUMP
             print(Fore.CYAN+"Client ("+str(self.i)+") GET FA"+Fore.RESET)
-
-        if data == "+SFA0000":                                  #SET FULL ARRAY (W/ DATA)
-            dmp = self.disp.receive().get_payload()             #RECEIVE PACKET
-            self.shared.gamefield = ast.literal_eval(dmp)       #WRITE ARRAY
-            print(Fore.CYAN+"Client ("+str(self.i)+") SET FA")
 
         if data == "*XYR0000":                                  #XY REQUEST (W/ DATA TWOWAY)
             dmp = self.disp.receive().get_payload()             #RECEIVE XYLOC
